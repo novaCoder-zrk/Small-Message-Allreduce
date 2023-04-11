@@ -2,8 +2,13 @@
 #include <cuda_runtime_api.h>
 #include <vector>
 #include <pthread.h>
-using namespace std;
 
+#include <ctime>
+#include <ratio>
+#include <chrono>
+
+using namespace std;
+using namespace std::chrono;
 #define cudaCheckError() {                                          \
         cudaError_t e=cudaGetLastError();                                 \
         if(e!=cudaSuccess) {                                              \
@@ -44,19 +49,19 @@ void* deviceMemCpy(void * arg)
     cudaSetDevice(rank1);
     cudaCheckError();
 
-    cudaDeviceSynchronize();
-    cudaEventRecord(start[index]);
+    //cudaDeviceSynchronize();
+    //cudaEventRecord(start[index]);
     
     for(int r=0;r <repeat;r++){
       myCudaMemCpy(buffer_recv[index],rank2,buffer_send[index],rank1,1);
 
     }
-    cudaEventRecord(stop[index]);
-    cudaCheckError();
-    cudaDeviceSynchronize();
-    float time_ms;
-    cudaEventElapsedTime(&time_ms,start[index],stop[index]);
-    latency[index] = time_ms*1e3/repeat;
+    //cudaEventRecord(stop[index]);
+    //cudaCheckError();
+    //cudaDeviceSynchronize();
+    // float time_ms;
+    // cudaEventElapsedTime(&time_ms,start[index],stop[index]);
+    // latency[index] = time_ms*1e3/repeat;
     return NULL;
 }
 
@@ -86,7 +91,10 @@ void latencyAll(vector<int> rank1,vector<int>rank2)
     }
 
     vector<pthread_t> threads(rank1.size());
-    
+    struct timespec start, end;
+
+    // 获取起始时刻
+    clock_gettime(CLOCK_MONOTONIC, &start);
    
     for(int i = 0;i < rank1.size();i++){
         int arg[] = {rank1[i], rank2[i], repeat,i};
@@ -96,19 +104,23 @@ void latencyAll(vector<int> rank1,vector<int>rank2)
     for (int i = 0; i < rank1.size(); i++) {
         pthread_join(threads[i], NULL);
     }
-    float max_latency = -1;
-    for(int i = 0;i < rank1.size();i++)
-    {
-        max_latency = max(max_latency, latency[i]);
-    }
+     clock_gettime(CLOCK_MONOTONIC, &end);
 
+    // 计算耗时并以us为单位输出
+    double elapsed_us = duration_cast<microseconds>(duration<double>(end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1000000000.)).count();
+    // float max_latency = -1;
+    // for(int i = 0;i < rank1.size();i++)
+    // {
+    //     max_latency = max(max_latency, latency[i]);
+    // }
+    float latency = elapsed_us / repeat;
     
-    printf("\n latency %6.02f \n",max_latency);
+    printf("\n latency %f \n",latency);
 
 }
 void outputLatencyMatrix(int numGPUs)
 {
-    int repeat=10000;
+    int repeat=100;
     vector<int *> buffers(numGPUs);
     vector<cudaEvent_t> start(numGPUs);
     vector<cudaEvent_t> stop(numGPUs);
