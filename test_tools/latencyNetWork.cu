@@ -77,9 +77,9 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &start); 
     
      
-    cudaMemcpy(buffer,d_data, 8, cudaMemcpyDeviceToHost);
+    cudaMemcpy(buffer,d_data, 1, cudaMemcpyDeviceToHost);
         //printf("1\n");
-    n = write(sockfd,buffer,8);  
+    n = write(sockfd,buffer,1);  
         //printf("2\n");
         
     
