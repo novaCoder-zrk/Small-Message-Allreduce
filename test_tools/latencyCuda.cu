@@ -10,7 +10,9 @@ void init(int local_gpu,int* d_data){
 
 void cudaDTH(void* dst,void* src){
     cudaMemcpy(dst,src, 4, cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
 }
 void cudaHTD(void* dst,void* src){
     cudaMemcpy(dst,src, 4, cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
 }

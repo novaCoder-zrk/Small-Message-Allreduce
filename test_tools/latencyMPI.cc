@@ -26,21 +26,25 @@ int main(int argc, char** argv) {
   init(local_gpu,d_data);
 
   struct timespec start, end;
-  double elapsed_us = 0;    
+  double elapsed_us = 0;   
+  MPI_Barrier(MPI_COMM_WORLD); 
   clock_gettime(CLOCK_MONOTONIC, &start); 
-
-  if(rank%2 == 0){
-    // send
-    cudaDTH(buffer,d_data);
-    MPI_Send(&data, 1, MPI_INT, (rank + 1) , 0, MPI_COMM_WORLD);
-  }else{
-    // recv
-    MPI_Recv(&data, 1, MPI_INT, (rank-1), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    cudaDTH(d_data,buffer);
+  int repeat = 1;
+  for(int i = 0; i< repeat;i++){
+    if(rank%2 == 0){
+      // send
+      cudaDTH(buffer,d_data);
+      MPI_Send(&data, 1, MPI_INT, (rank + 1) , 0, MPI_COMM_WORLD);
+    }else{
+      // recv
+      MPI_Recv(&data, 1, MPI_INT, (rank-1), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      cudaDTH(d_data,buffer);
+    }
+    
   }
   clock_gettime(CLOCK_MONOTONIC, &end);
   elapsed_us = duration_cast<microseconds>(duration<double>(end.tv_sec - start.tv_sec + (end.tv_nsec - start.tv_nsec) / 1000000000.)).count();
-
+  elapsed_us = elapsed_us / repeat;
   
   // for (int i = 0; i < size; i++) {
   //       if (rank == i % size) { // 每个进程依次发送数据
